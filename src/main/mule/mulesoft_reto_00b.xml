@@ -18,10 +18,10 @@ output application/java
 			</ee:message>
 		</ee:transform>
 		<http:request method="GET" doc:name="Request" doc:id="374a45e4-5304-4c6f-8c0d-d96eead69379" config-ref="HTTP_Request_configuration1" path="/2/tweets/search/recent">
-			<http:headers ><![CDATA[#[output application/json
+			<http:headers ><![CDATA[#[output application/java
 ---
 {
-	"Authorization": p('twitter.token')
+    "Authorization": "Bearer " ++ p('twitter.bearer')
 }]]]></http:headers>
 			<http:query-params ><![CDATA[#[output application/java
 ---
@@ -30,6 +30,15 @@ output application/java
 	"query" : payload.searchKey
 }]]]></http:query-params>
 		</http:request>
-		<logger level="INFO" doc:name="Logger" doc:id="cbd82aa1-88c3-47fe-8d70-cd143f95c541" />
+		<logger level="INFO" doc:name="Logger" doc:id="cbd82aa1-88c3-47fe-8d70-cd143f95c541" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="3bf83f9d-c248-4346-85a1-2996249f7735" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.data map $.text
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>
