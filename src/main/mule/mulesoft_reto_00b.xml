@@ -5,11 +5,8 @@
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="3c3061ca-bc4b-4ab1-a740-2c13c4ef8df9" >
-		<http:listener-connection host="0.0.0.0" port="8081" />
-	</http:listener-config>
 	<flow name="mulesoft_reto_00bFlow" doc:id="ab71653d-f681-47d9-906a-726e4db0caff" >
-		<http:listener doc:name="Listener" doc:id="b87e983e-e388-484d-913b-e16c4ad1a168" config-ref="HTTP_Listener_config" path="/api"/>
+		<http:listener doc:name="Listener" doc:id="b87e983e-e388-484d-913b-e16c4ad1a168" path="/api" config-ref="HTTP_Listener_config1"/>
 		<ee:transform doc:name="Transform Message" doc:id="245f502f-dd9d-40c7-8cd7-7d4555d69069" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -20,5 +17,19 @@ output application/java
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+		<http:request method="GET" doc:name="Request" doc:id="374a45e4-5304-4c6f-8c0d-d96eead69379" config-ref="HTTP_Request_configuration1" path="/2/tweets/search/recent">
+			<http:headers ><![CDATA[#[output application/json
+---
+{
+	"Authorization": p('twitter.token')
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"max_results" : 100,
+	"query" : payload.searchKey
+}]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="cbd82aa1-88c3-47fe-8d70-cd143f95c541" />
 	</flow>
 </mule>
