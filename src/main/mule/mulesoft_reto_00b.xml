@@ -17,17 +17,38 @@ output application/java
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request method="GET" doc:name="Request" doc:id="374a45e4-5304-4c6f-8c0d-d96eead69379" config-ref="HTTP_Request_configuration1" path="/2/tweets/search/recent">
+		<logger level="INFO" doc:name="Logger" doc:id="6210407f-2a68-4084-a110-da867730cd7c" message="#[payload]"/>
+		<!-- [STUDIO:"X HTTP Request"]<http:request method="GET" doc:name="X HTTP Request" doc:id="374a45e4-5304-4c6f-8c0d-d96eead69379" config-ref="HTTP_Request_configuration_X" path="/2/tweets/search/recent">
+			<http:headers ><![CDATA[#[output application/java
+&#45;&#45;-
+{
+    "Authorization": "Bearer " ++ p('twitter.bearer')
+}&#93;&#93;&#93;></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+&#45;&#45;-
+{
+	"lang" : "es,en,pt",
+	"max_results" : 10,
+	"query" : payload.searchKey
+}&#93;&#93;&#93;></http:query-params>
+		</http:request> [STUDIO] -->
+		<http:request method="GET" doc:name="Bluesky HTTP Request" doc:id="ffe49f2a-ad9a-4461-8df9-7eb7cbf3eedd" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/app.bsky.feed.searchPosts" sendCorrelationId="ALWAYS">
+			<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+{}]]]></http:body>
 			<http:headers ><![CDATA[#[output application/java
 ---
 {
-    "Authorization": "Bearer " ++ p('twitter.bearer')
+	"Authorization" : "Bearer " ++ p('bluesky.password'),
+	"Content-Type" : "application/json"
 }]]]></http:headers>
 			<http:query-params ><![CDATA[#[output application/java
 ---
 {
-	"max_results" : 100,
-	"query" : payload.searchKey
+    "q": payload.key,
+    "limit": 10,
+    "sort": "latest"
 }]]]></http:query-params>
 		</http:request>
 		<logger level="INFO" doc:name="Logger" doc:id="cbd82aa1-88c3-47fe-8d70-cd143f95c541" message="#[payload]"/>
@@ -36,7 +57,7 @@ output application/java
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload.data map $.text
+payload.posts map $.record.text
 ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
