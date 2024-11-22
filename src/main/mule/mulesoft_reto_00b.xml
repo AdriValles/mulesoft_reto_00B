@@ -7,16 +7,20 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="mulesoft_reto_00bFlow" doc:id="ab71653d-f681-47d9-906a-726e4db0caff" >
 		<http:listener doc:name="Listener" doc:id="b87e983e-e388-484d-913b-e16c4ad1a168" path="/api" config-ref="HTTP_Listener_config1"/>
-		<ee:transform doc:name="Transform Message" doc:id="245f502f-dd9d-40c7-8cd7-7d4555d69069" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/java
+		<set-variable value="#[payload.key]" doc:name="searchKey" doc:id="8bda6a79-ddda-4cd5-ae61-0141eca5f1aa" variableName="searchKey"/>
+		<http:request method="POST" doc:name="Request" doc:id="9f3361f2-556f-455b-b904-cd428836421e" path="/xrpc/com.atproto.server.createSession" config-ref="HTTP_Request_configuration_JWT">
+			<http:body ><![CDATA[#[%dw 2.0
+output application/json
 ---
 {
-	searchKey: payload.key
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
+    "identifier": "pedrojuuu.bsky.social",
+    "password": "3lcs-qimp-kvi3-2gvl"
+}]]]></http:body>
+			<http:headers ><![CDATA[#[{
+	"Content-Type": "application/json"
+}]]]></http:headers>
+		</http:request>
+		<set-variable value="#[payload.accessJwt]" doc:name="accessJwt" doc:id="db082f37-ad2c-4471-b447-477ada373bda" variableName="accessJwt"/>
 		<!-- [STUDIO:"X HTTP Request"]<http:request method="GET" doc:name="X HTTP Request" doc:id="374a45e4-5304-4c6f-8c0d-d96eead69379" config-ref="HTTP_Request_configuration_X" path="/2/tweets/search/recent">
 			<http:headers ><![CDATA[#[output application/java
 &#45;&#45;-
@@ -32,22 +36,15 @@ output application/java
 }&#93;&#93;&#93;></http:query-params>
 		</http:request> [STUDIO] -->
 		<http:request method="GET" doc:name="Bluesky HTTP Request" doc:id="d8cb8b45-6974-4726-9b33-76ece9aac9b3" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/app.bsky.feed.searchPosts" sendCorrelationId="ALWAYS">
-    <http:headers ><![CDATA[#[output application/java
----
-{
-    "Authorization": "Bearer " ++ p('bluesky.password'),
+    <http:headers ><![CDATA[#[{
+	"Authorization": "Bearer " ++ vars.accessJwt,
     "Accept": "application/json"
 }]]]></http:headers>
-			<http:query-params><![CDATA[#[output application/java
----
-{
-    "q": payload.searchKey,
-    "limit": 10,
+			<http:query-params><![CDATA[#[{
+    "q": vars.searchKey,
+    "limit": '10',
 }]]]></http:query-params>
 </http:request>
-
-		<logger level="INFO" doc:name="Logger" doc:id="2b15872b-cd66-4658-9a47-77f0207085c2" message="#[payload.searchKey]"/>
-		<logger level="INFO" doc:name="Logger" doc:id="cbd82aa1-88c3-47fe-8d70-cd143f95c541" message="#[attributes.queryParams]"/>
 		<ee:transform doc:name="Transform Message" doc:id="3bf83f9d-c248-4346-85a1-2996249f7735" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
