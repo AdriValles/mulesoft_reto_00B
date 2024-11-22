@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="6885da59-a548-4b1f-888f-60adb3aee801" persistent="false" maxEntries="1" entryTtl="1" entryTtlUnit="HOURS" expirationIntervalUnit="HOURS" />
 	<flow name="mulesoft_reto_00bFlow" doc:id="ab71653d-f681-47d9-906a-726e4db0caff" >
 		<http:listener doc:name="Listener" doc:id="b87e983e-e388-484d-913b-e16c4ad1a168" path="/api" config-ref="HTTP_Listener_config1"/>
 		<set-variable value="#[payload.key]" doc:name="searchKey" doc:id="3bc5f789-099b-45e8-b31c-f7d894d7f8cc" variableName="searchKey"/>
@@ -22,9 +24,21 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 	"query" : payload.searchKey
 }&#93;&#93;&#93;></http:query-params>
 		</http:request> [STUDIO] -->
-		<flow-ref doc:name="bsky-auth-ref" doc:id="3289e3f6-3203-41a5-a8db-98a5f7767b0e" name="bsky-auth"/>
-		<http:request method="GET" doc:name="Bluesky HTTP Request" doc:id="d8cb8b45-6974-4726-9b33-76ece9aac9b3" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/app.bsky.feed.searchPosts" sendCorrelationId="ALWAYS">
-    <http:headers ><![CDATA[#[{
+		<os:retrieve doc:name="Retrieve" doc:id="9676db71-3966-4d30-91d9-9cdec8470262" key="accessJwt" objectStore="Object_store" target="accessJwt">
+			<os:default-value><![CDATA[null]]></os:default-value>
+		</os:retrieve>
+		<set-variable value="#[vars.accessJwt]" doc:name="accessJwt" doc:id="3938b442-5da0-4270-803a-211d9ebeea6b" variableName="accessJwt" />
+		<choice doc:name="Choice" doc:id="7dd8daf4-2797-409d-8811-ee18a5be5477" >
+			<when expression='#[vars.accessJwt == "null"]'>
+				<flow-ref doc:name="bsky-auth-ref" doc:id="6bec3286-6c41-4322-b92e-cf38f2904b6b" name="bsky-auth" />
+				<os:retrieve doc:name="Retrieve" doc:id="c188997c-bebd-4d65-b54e-543dc2dae223" key="accessJwt" objectStore="Object_store" target="accessJwt" >
+					<os:default-value ><![CDATA[null]]></os:default-value>
+				</os:retrieve>
+			</when>
+		</choice>
+		<try doc:name="Try" doc:id="f14a9960-1f1f-499e-88d4-20f73e847ac8" >
+			<http:request method="GET" doc:name="Bluesky HTTP Request" doc:id="d8cb8b45-6974-4726-9b33-76ece9aac9b3" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/app.bsky.feed.searchPosts" sendCorrelationId="ALWAYS">
+    <http:headers><![CDATA[#[{
     "Authorization": "Bearer " ++ vars.accessJwt,
     "Accept": "application/json"
 }]]]></http:headers>
@@ -33,9 +47,32 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
     "limit": "10"
 }]]]></http:query-params>
 </http:request>
-		<ee:transform doc:name="Transform Message" doc:id="3bf83f9d-c248-4346-85a1-2996249f7735" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+			<error-handler>
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f0a9341a-b0c1-4419-90b3-40b048201991" >
+					<choice doc:name="Choice" doc:id="db07606a-dc6b-48d0-b0e0-b8f7eae1868e" >
+						<when expression="#[error.statusCode == 401]">
+							<flow-ref doc:name="bsky-auth-ref" doc:id="5a026d5d-9936-496c-8d8b-a4487a36c916" name="bsky-auth"/>
+							<http:request method="GET" doc:name="Bluesky HTTP Request" doc:id="9742b30e-f4e0-464b-8ab4-c32cb6588756" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/app.bsky.feed.searchPosts" sendCorrelationId="ALWAYS" >
+								<http:headers ><![CDATA[#[{
+    "Authorization": "Bearer " ++ vars.accessJwt,
+    "Accept": "application/json"
+}]]]></http:headers>
+								<http:query-params ><![CDATA[#[{
+    "q": vars.searchKey,
+    "limit": "10"
+}]]]></http:query-params>
+							</http:request>
+						</when>
+						<otherwise>
+							<logger level="ERROR" doc:name="Logger" doc:id="32a14521-b0e6-42e1-b3df-eb5e5f9fc614" message="Error inesperado: #[error.message]"/>
+						</otherwise>
+					</choice>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Transform Message" doc:id="3bf83f9d-c248-4346-85a1-2996249f7735">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 payload.posts map $.record.text
@@ -58,14 +95,9 @@ output application/json
 	"Content-Type" : "application/json"
 }]]]></http:headers>
 		</http:request>
-		<set-variable value="#[payload.accessJwt]" doc:name="accessJwt" doc:id="3938b442-5da0-4270-803a-211d9ebeea6b" variableName="accessJwt" />
-	</flow>
-	<flow name="validate-token-bsky" doc:id="99f37957-c494-484f-bb6a-74e2c85e7b0c" >
-		<http:request method="GET" doc:name="Request" doc:id="4b52bb99-d011-4fc5-9945-bfa50eb8a135" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/com.atproto.server.getSession"/>
-		<choice doc:name="Choice" doc:id="21ed7493-6027-4220-95e2-6aca6d963c0c" >
-			<when expression="#[isEmpty(payload.did)]">
-				<flow-ref doc:name="Flow Reference" doc:id="2022a49a-e297-4e60-a893-63bb463d9d31" name="bsky-auth" />
-			</when>
-		</choice>
+
+		<os:store doc:name="Store" doc:id="9b9ff742-16a7-41eb-b64c-7c144ecf5a25" key="accessJwt" objectStore="Object_store">
+			<os:value ><![CDATA[#[payload.accessJwt]]]></os:value>
+		</os:store>
 	</flow>
 </mule>
