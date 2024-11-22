@@ -7,20 +7,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="mulesoft_reto_00bFlow" doc:id="ab71653d-f681-47d9-906a-726e4db0caff" >
 		<http:listener doc:name="Listener" doc:id="b87e983e-e388-484d-913b-e16c4ad1a168" path="/api" config-ref="HTTP_Listener_config1"/>
-		<set-variable value="#[payload.key]" doc:name="searchKey" doc:id="8bda6a79-ddda-4cd5-ae61-0141eca5f1aa" variableName="searchKey"/>
-		<http:request method="POST" doc:name="Request" doc:id="9f3361f2-556f-455b-b904-cd428836421e" path="/xrpc/com.atproto.server.createSession" config-ref="HTTP_Request_configuration_JWT">
-			<http:body ><![CDATA[#[%dw 2.0
-output application/json
----
-{
-    "identifier": "pedrojuuu.bsky.social",
-    "password": "3lcs-qimp-kvi3-2gvl"
-}]]]></http:body>
-			<http:headers ><![CDATA[#[{
-	"Content-Type": "application/json"
-}]]]></http:headers>
-		</http:request>
-		<set-variable value="#[payload.accessJwt]" doc:name="accessJwt" doc:id="db082f37-ad2c-4471-b447-477ada373bda" variableName="accessJwt"/>
+		<set-variable value="#[payload.key]" doc:name="searchKey" doc:id="3bc5f789-099b-45e8-b31c-f7d894d7f8cc" variableName="searchKey"/>
 		<!-- [STUDIO:"X HTTP Request"]<http:request method="GET" doc:name="X HTTP Request" doc:id="374a45e4-5304-4c6f-8c0d-d96eead69379" config-ref="HTTP_Request_configuration_X" path="/2/tweets/search/recent">
 			<http:headers ><![CDATA[#[output application/java
 &#45;&#45;-
@@ -35,14 +22,15 @@ output application/json
 	"query" : payload.searchKey
 }&#93;&#93;&#93;></http:query-params>
 		</http:request> [STUDIO] -->
+		<flow-ref doc:name="bsky-auth-ref" doc:id="3289e3f6-3203-41a5-a8db-98a5f7767b0e" name="bsky-auth"/>
 		<http:request method="GET" doc:name="Bluesky HTTP Request" doc:id="d8cb8b45-6974-4726-9b33-76ece9aac9b3" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/app.bsky.feed.searchPosts" sendCorrelationId="ALWAYS">
     <http:headers ><![CDATA[#[{
-	"Authorization": "Bearer " ++ vars.accessJwt,
+    "Authorization": "Bearer " ++ vars.accessJwt,
     "Accept": "application/json"
 }]]]></http:headers>
 			<http:query-params><![CDATA[#[{
     "q": vars.searchKey,
-    "limit": '10',
+    "limit": "10"
 }]]]></http:query-params>
 </http:request>
 		<ee:transform doc:name="Transform Message" doc:id="3bf83f9d-c248-4346-85a1-2996249f7735" >
@@ -54,5 +42,30 @@ payload.posts map $.record.text
 ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+	</flow>
+	<flow name="bsky-auth" doc:id="42590c9b-5677-48a6-87eb-edace3fd8448" >
+		<http:request method="POST" doc:name="Request" doc:id="9b05aa68-de91-4a46-b271-d116acc3c769" config-ref="HTTP_Request_configuration_Bluesky" path="xrpc/com.atproto.server.createSession">
+			<http:body><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+    "identifier": p('bluesky.username'),
+    "password": p('bluesky.apppassword')
+}]]]></http:body>
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+		</http:request>
+		<set-variable value="#[payload.accessJwt]" doc:name="accessJwt" doc:id="3938b442-5da0-4270-803a-211d9ebeea6b" variableName="accessJwt" />
+	</flow>
+	<flow name="validate-token-bsky" doc:id="99f37957-c494-484f-bb6a-74e2c85e7b0c" >
+		<http:request method="GET" doc:name="Request" doc:id="4b52bb99-d011-4fc5-9945-bfa50eb8a135" config-ref="HTTP_Request_configuration_Bluesky" path="/xrpc/com.atproto.server.getSession"/>
+		<choice doc:name="Choice" doc:id="21ed7493-6027-4220-95e2-6aca6d963c0c" >
+			<when expression="#[isEmpty(payload.did)]">
+				<flow-ref doc:name="Flow Reference" doc:id="2022a49a-e297-4e60-a893-63bb463d9d31" name="bsky-auth" />
+			</when>
+		</choice>
 	</flow>
 </mule>
