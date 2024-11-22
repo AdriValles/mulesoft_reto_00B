@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_e2d94fdb_91b1_44bf_84b5_fb28c45298bc_Output_Variables_searchKey = Any
+

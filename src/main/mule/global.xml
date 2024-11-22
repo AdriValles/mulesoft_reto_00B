@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
 	<http:request-config name="HTTP_Request_configuration_X" doc:name="HTTP Request configuration" doc:id="24f41fbb-1caa-46c5-a0ca-02d3dacef009" >
 		<http:request-connection protocol="HTTPS" host="api.twitter.com" port="443" />
 	</http:request-config>
@@ -14,7 +15,6 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<http:request-config name="HTTP_Request_configuration_Bluesky">
     <http:request-connection protocol="HTTPS" host="bsky.social"/>
 </http:request-config>
-	<http:request-config name="HTTP_Request_configuration_JWT" doc:name="HTTP Request configuration" doc:id="8f9765f3-7a48-4b99-a4d2-c1d469f8ca35" >
-		<http:request-connection protocol="HTTPS" host="bsky.social"/>
-	</http:request-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="4348c7e6-4437-4255-932f-286d640ab58a" maxEntries="1" entryTtl="1" entryTtlUnit="HOURS" expirationIntervalUnit="HOURS" />
+	
 </mule>
